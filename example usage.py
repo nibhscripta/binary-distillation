@@ -1,7 +1,7 @@
 from objects import BinaryDistillationOperatingLine, BinaryVaporLiquidEquilibriumLine
 from operations import step_off_top, plot_mccabe_thiele_analysis
 
-from numpy import sin, pi
+from numpy import sin, pi, array
 from matplotlib.pyplot import plot, xlabel, ylabel, legend, show, grid
 
 

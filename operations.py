@@ -3,7 +3,7 @@ import scipy, dataclasses, numpy, matplotlib, warnings
 def plot_mccabe_thiele_analysis(eq, op, stages):
     matplotlib.pyplot.plot(eq.x, eq.y, label="Equilibrium Line")
     matplotlib.pyplot.plot(op.x, op.y, label="Operating Line")
-    matplotlib.pyplot.plot([op.x_F, op.e.xpp,], [op.x_F, op.e.ypp], label="Feed Line")
+    matplotlib.pyplot.plot([op.x_F, op.xpp,], [op.x_F, op.ypp], label="Feed Line")
     matplotlib.pyplot.plot(stages.x, stages.y, "k", label="Stages")
     matplotlib.pyplot.plot(eq.x, eq.x, "tab:grey", linestyle="--")
 

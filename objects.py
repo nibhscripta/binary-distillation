@@ -39,8 +39,6 @@ class OperatingLine():
     x: numpy.ndarray = dataclasses.field(repr=False)
     y: numpy.ndarray = dataclasses.field(repr=False)
     f: typing.Optional[typing.Callable] = dataclasses.field(repr=False)
-    xpp: float
-    ypp: float
 
 
 
@@ -81,7 +79,7 @@ def _operating_lines_specified_reflux(x_F, x_D, x_W, q, R):
     x_s = numpy.array([x_W, xpp])
     y_s = f_s(x_s)
 
-    return OperatingLine(x_s, y_s, f_s, xpp, ypp), OperatingLine(x_e, y_e, f_e, xpp, ypp)
+    return OperatingLine(x_s, y_s, f_s), OperatingLine(x_e, y_e, f_e), xpp, ypp
 
 
 
@@ -122,7 +120,20 @@ def _operating_lines_specified_boilup(x_F, x_D, x_W, q, B):
     x_e = numpy.array([xpp, x_D])
     y_e = f_e(x_e)
 
-    return OperatingLine(x_s, y_s, f_s, xpp, ypp), OperatingLine(x_e, y_e, f_e, xpp, ypp)
+    return OperatingLine(x_s, y_s, f_s), OperatingLine(x_e, y_e, f_e), xpp, ypp
+
+
+
+def _feed_quality(q):
+    if q > 1:
+        return "Subcooled liquid"
+    if q < 0:
+        return "Superheated vapor"
+    if q == 1:
+        return "Saturated liquid"
+    if q == 0:
+        return "Saturated vapor"
+    return "Vapor/Liquid mixture"
 
 
 
@@ -140,6 +151,15 @@ class BinaryVaporLiquidEquilibriumLine():
         elif len(args) == 2:
             self.x = args[0]
             self.y = args[1]
+        
+        if self.x.min() < 0:
+            raise TypeError("Liquid composition must be between 0 and 1.")
+        if self.x.max() > 1:
+            raise TypeError("Liquid composition must be between 0 and 1.")
+        if self.y.min() < 0:
+            raise TypeError("Vapor composition must be between 0 and 1.")
+        if self.y.max() > 1:
+            raise TypeError("Vapor composition must be between 0 and 1.")
 
 
 
@@ -153,24 +173,39 @@ class BinaryDistillationOperatingLine():
     R: float = None
     B: float = None
     R_min: float = dataclasses.field(init=False)
+    feed_quailty: str = dataclasses.field(init=False) 
     e: OperatingLine = dataclasses.field(init=False, repr=False)
     s: OperatingLine = dataclasses.field(init=False, repr=False)
     x: numpy.ndarray = dataclasses.field(init=False, repr=False)
     y: numpy.ndarray = dataclasses.field(init=False, repr=False) 
+    xpp: float = dataclasses.field(init=False, repr=False)
+    ypp: float = dataclasses.field(init=False, repr=False) 
 
     def __post_init__(self):
         self.R_min = _evaluate_minimum_reflux_ratio(self.equilibrium, self.x_F, self.x_D, self.q)
 
+        if self.x_F > self.x_D:
+            raise TypeError("Feed composition must be below distillate composition.")
+        if self.x_F < self.x_W:
+            raise TypeError("Feed composition must be above worm composition.")
+
         if self.R is None and self.B is None:
             self.R = 1.3 * self.R_min
-            self.s, self.e = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
+            self.s, self.e, self.xpp, self.ypp = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
         elif self.R is not None:
-            self.s, self.e = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
+            if self.R <= self.R_min:
+                raise TypeError("Infeasible system. R is below R_min.")
+            self.s, self.e, self.xpp, self.ypp = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
         elif self.B is not None:
-            self.s, self.e = _operating_lines_specified_boilup(self.x_F, self.x_D, self.x_W, self.q, self.B)
+            self.s, self.e, self.xpp, self.ypp = _operating_lines_specified_boilup(self.x_F, self.x_D, self.x_W, self.q, self.B)
 
         self.x = numpy.array([*self.s.x, *self.e.x])
         self.y = numpy.array([*self.s.y, *self.e.y])
+
+        if self.ypp > numpy.interp(self.xpp, self.equilibrium.x, self.equilibrium.y):
+            raise TypeError("Infeasible system. Operating line exceeds equilibrium line.")
+        
+        self.feed_quailty = _feed_quality(self.q)
 
     def __str__(self):
         return f"x_F: {self.x_F}, x_D: {self.x_D}, x_W: {self.x_W}, q: {self.q}, R: {self.R}, B: {self.B}, R_min: {self.R_min}"
