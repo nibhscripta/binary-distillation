@@ -27,4 +27,4 @@ grid(which="both", axis="both")
 legend()
 show()
 
-print(stages.N)
+print(stages)

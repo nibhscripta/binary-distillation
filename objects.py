@@ -36,9 +36,9 @@ def _evaluate_minimum_reflux_ratio(eq, x_F, x_D, q):
 
 @dataclasses.dataclass
 class OperatingLine():
-    x: numpy.ndarray
-    y: numpy.ndarray
-    f: typing.Optional[typing.Callable]
+    x: numpy.ndarray = dataclasses.field(repr=False)
+    y: numpy.ndarray = dataclasses.field(repr=False)
+    f: typing.Optional[typing.Callable] = dataclasses.field(repr=False)
     xpp: float
     ypp: float
 
@@ -128,9 +128,9 @@ def _operating_lines_specified_boilup(x_F, x_D, x_W, q, B):
 
 @dataclasses.dataclass
 class BinaryVaporLiquidEquilibriumLine():
-    x: numpy.ndarray = dataclasses.field(init=False)
-    y: numpy.ndarray = dataclasses.field(init=False)
-    f: typing.Optional[typing.Callable] = dataclasses.field(init=False)
+    x: numpy.ndarray = dataclasses.field(init=False, repr=False)
+    y: numpy.ndarray = dataclasses.field(init=False, repr=False)
+    f: typing.Optional[typing.Callable] = dataclasses.field(init=False, repr=False)
 
     def __init__(self, *args):
         if len(args) == 1:
@@ -148,15 +148,15 @@ class BinaryDistillationOperatingLine():
     x_F: float
     x_D: float
     x_W: float
-    equilibrium: BinaryVaporLiquidEquilibriumLine
+    equilibrium: BinaryVaporLiquidEquilibriumLine = dataclasses.field(repr=False)
     q: float
     R: float = None
     B: float = None
     R_min: float = dataclasses.field(init=False)
-    e: OperatingLine = dataclasses.field(init=False)
-    s: OperatingLine = dataclasses.field(init=False)
-    x: numpy.ndarray = dataclasses.field(init=False)
-    y: numpy.ndarray = dataclasses.field(init=False) 
+    e: OperatingLine = dataclasses.field(init=False, repr=False)
+    s: OperatingLine = dataclasses.field(init=False, repr=False)
+    x: numpy.ndarray = dataclasses.field(init=False, repr=False)
+    y: numpy.ndarray = dataclasses.field(init=False, repr=False) 
 
     def __post_init__(self):
         self.R_min = _evaluate_minimum_reflux_ratio(self.equilibrium, self.x_F, self.x_D, self.q)

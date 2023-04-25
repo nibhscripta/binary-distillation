@@ -14,8 +14,8 @@ def plot_mccabe_thiele_analysis(eq, op, stages):
 
 @dataclasses.dataclass 
 class BinaryStageAnalysis():
-    x: float
-    y: float
+    x: float = dataclasses.field(repr=False)
+    y: float = dataclasses.field(repr=False)
     N: float
 
 
