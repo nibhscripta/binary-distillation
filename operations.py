@@ -1,5 +1,14 @@
 import scipy, dataclasses, numpy, matplotlib, warnings
 
+
+
+def _azeotrope_example_function(x):
+    c = [14.64671599, -39.42525966, 39.32333535, -17.6497924, 2.98923655, 1.11520416]
+    poly = lambda x, A, B, C, D, E, F: A * x**6 + B * x**5 + C * x**4 + D * x**3 + E * x**2 + F * x
+    return poly(x, *c)
+
+
+
 def plot_mccabe_thiele_analysis(eq, op, stages):
     matplotlib.pyplot.plot(eq.x, eq.y, label="Equilibrium Line")
     matplotlib.pyplot.plot(op.x, op.y, label="Operating Line")

@@ -2,6 +2,53 @@ import scipy, dataclasses, numpy, matplotlib, warnings, typing
 
 
 
+def _one_d_intersections(x1, y1, x2, y2, iterations=10, tol=1e-8):
+    f = lambda x: numpy.interp(x, x1, y1) - numpy.interp(x, x2, y2)
+    sols = []
+    for i in range(iterations):
+        x = scipy.optimize.fsolve(f, x1[int(x1.shape[0] * (i/iterations))])[0]
+        y = numpy.interp(x, x1, y1)
+        if [x, y] not in sols:
+            sols.append([x, y])
+    tolerant_sols = []
+    tolerant_val = None
+    for i, val in enumerate(sols):
+        y_1i = numpy.interp(val[0], x1, y1)
+        y_2i = numpy.interp(val[0], x2, y2)
+        meets_tol = abs(y_2i - y_1i) <= tol
+        within_x1 = (val[0] <= x1.max()) and (val[0] >= x1.min())
+        within_x2 = (val[0] <= x2.max()) and (val[0] >= x2.min())
+        not_already_found = tolerant_val not in tolerant_sols
+        if meets_tol and within_x1 and within_x2 and not_already_found:
+            tolerant_sols.append(val)
+    return tuple(tolerant_sols)
+
+
+
+def _is_azeotrope(x, y, tol=1e-8):
+    identity_x = numpy.array([0, 1])
+    identity_y = identity_x
+    intersections = _one_d_intersections(x, y, identity_x, identity_y)
+    if intersections == []:
+        return False
+    for val in intersections:
+        middle = (val[0] >= tol) and (val[0] <= (1 - tol))
+        if middle:
+            return val[0]
+    return False
+
+
+
+def _valid_binary_specification_with_azeotrope(x_F, x_D, x_W, x_azeo):
+    if (x_F < x_azeo) and (x_D < x_azeo) and (x_W < x_azeo):
+        return True
+    elif (x_F > x_azeo) and (x_D > x_azeo) and (x_W > x_azeo):
+        return True
+    else: 
+        return False
+
+
+
 def _evaluate_minimum_reflux_ratio(eq, x_F, x_D, q):
     '''
     Finds the minimum reflux ratio of a binary distillation column by finding the point at which the feed and enriching line intersect the equilibrium curve.
@@ -172,6 +219,7 @@ class BinaryDistillationOperatingLine():
     q: float
     R: float = None
     B: float = None
+    azeo_x: float = None
     R_min: float = dataclasses.field(init=False)
     feed_quailty: str = dataclasses.field(init=False) 
     e: OperatingLine = dataclasses.field(init=False, repr=False)
@@ -182,6 +230,12 @@ class BinaryDistillationOperatingLine():
     ypp: float = dataclasses.field(init=False, repr=False) 
 
     def __post_init__(self):
+        azeo_x = _is_azeotrope(self.equilibrium.x, self.equilibrium.y)
+        if azeo_x:
+            self.azeo_x = azeo_x
+            if not _valid_binary_specification_with_azeotrope(self.x_F, self.x_D,self.x_W, azeo_x):
+                raise TypeError(f"Azeotrope found at x={azeo_x}. Distillation specification is invalid for an azeotrope.")
+
         self.R_min = _evaluate_minimum_reflux_ratio(self.equilibrium, self.x_F, self.x_D, self.q)
 
         if self.x_F > self.x_D:
