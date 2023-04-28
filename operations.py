@@ -9,10 +9,14 @@ def _azeotrope_example_function(x):
 
 
 
-def plot_mccabe_thiele_analysis(eq, op, stages):
-    matplotlib.pyplot.plot(eq.x, eq.y, label="Equilibrium Line")
-    matplotlib.pyplot.plot(op.x, op.y, label="Operating Line")
-    matplotlib.pyplot.plot([op.x_F, op.xpp,], [op.x_F, op.ypp], label="Feed Line")
+def plot_mccabe_thiele_analysis(eq, op, stages, op_lines=None):
+    matplotlib.pyplot.plot(eq.x, eq.y, "tab:blue", label="Equilibrium Line")
+    if op_lines == "both":
+        matplotlib.pyplot.plot(op.e.x, op.e.y, "tab:orange", label="Enriching Line")
+        matplotlib.pyplot.plot(op.s.x, op.s.y, "tab:green", label="Stripping Line")
+    else:
+        matplotlib.pyplot.plot(op.x, op.y, "tab:orange", label="Operating Line")
+    matplotlib.pyplot.plot([op.x_F, op.xpp,], [op.x_F, op.ypp], "tab:red", label="Feed Line")
     matplotlib.pyplot.plot(stages.x, stages.y, "k", label="Stages")
     matplotlib.pyplot.plot(eq.x, eq.x, "tab:grey", linestyle="--")
 
