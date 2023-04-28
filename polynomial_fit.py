@@ -83,7 +83,4 @@ def polynomial_fit(x_data, y_data):
 
     optimal_coeffs = p[optimal_order]['fit_coefficients']
 
-    print(optimal_order)
-    print(polynomials[optimal_order])
-
     return lambda x: polynomials[optimal_order](x, *optimal_coeffs)

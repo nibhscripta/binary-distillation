@@ -1,5 +1,7 @@
 import scipy, dataclasses, numpy, matplotlib, warnings, typing
 
+from polynomial_fit import polynomial_fit
+
 
 
 def _one_d_intersections(x1, y1, x2, y2, iterations=10, tol=1e-8):
@@ -188,7 +190,7 @@ def _feed_quality(q):
 class BinaryVaporLiquidEquilibriumLine():
     x: numpy.ndarray = dataclasses.field(init=False, repr=False)
     y: numpy.ndarray = dataclasses.field(init=False, repr=False)
-    f: typing.Optional[typing.Callable] = dataclasses.field(init=False, repr=False)
+    f: typing.Optional[typing.Callable] = None
 
     def __init__(self, *args):
         if len(args) == 1:
@@ -207,6 +209,17 @@ class BinaryVaporLiquidEquilibriumLine():
             raise TypeError("Vapor composition must be between 0 and 1.")
         if self.y.max() > 1:
             raise TypeError("Vapor composition must be between 0 and 1.")
+
+    def fit_curve(self, function=None):
+        if function is not None:
+            covs, _ = scipy.optimize.curve_fit(function, self.x, self.y)
+
+            self.f = lambda x: function(x, *covs)
+        else:
+            self.f = polynomial_fit(self.x, self.y)
+
+        self.x = numpy.linspace(0, 1, 1000)
+        self.y = self.f(self.x)
 
 
 
