@@ -52,17 +52,17 @@ def step_off_top(op, eq, E:float = 1):
     y = [op.x[-1]]
 
     for i in range(1000):
-        y.append(y[2*i])
-        x_eq = numpy.interp(y[2*i], eq.y, eq.x)
-        x.append(x[2*i-1] - (x[2*i-1] - x_eq) * E)
-        x.append(x[2*i+1])
-        y.append(numpy.interp(x[2*i+1], op.x, op.y))
+        y.append(y[-1])
+        x_eq = numpy.interp(y[-1], eq.y, eq.x)
+        x.append(x[-1] - (x[-1] - x_eq) * E)
+        x.append(x[-1])
+        y.append(numpy.interp(x[-1], op.x, op.y))
         if x[2*i+1] < op.x[0]:
-            partial_stage = (x[2*i] - op.x[0]) / (x[2*i]- x[2*i+1])
-            x[2*i+2] = op.x[0]
-            y[2*i+2] = op.x[0]
-            x[2*i+1] = op.x[0]
-            y[2*i+1] = y[2*i]
+            partial_stage = (x[-3] - op.x[0]) / (x[-3]- x[-1])
+            x[-1] = op.x[0]
+            y[-1] = op.x[0]
+            x[-2] = op.x[0]
+            y[-2] = y[-3]
             N = i + partial_stage 
             break
 
@@ -85,14 +85,14 @@ def step_off_bottom(op, eq, E:float = 1, B_E=1):
     y = [op.x[0]]
 
     for i in range(1000):
-        x.append(x[2*i])
-        y_eq = numpy.interp(x[2*i], eq.x, eq.y)
+        x.append(x[-1])
+        y_eq = numpy.interp(x[-1], eq.x, eq.y)
         if i == 0:
-            y.append(y[2*i-1] - (y[2*i-1] - y_eq) * B_E)
+            y.append(y[-1] - (y[-1] - y_eq) * B_E)
         else:
-            y.append(y[2*i-1] - (y[2*i-1] - y_eq) * E)
-        y.append(y[2*i+1])
-        x.append(numpy.interp(y[2*i+1], op.y, op.x))
+            y.append(y[-1] - (y[-1] - y_eq) * E)
+        y.append(y[-1])
+        x.append(numpy.interp(y[-1], op.y, op.x))
         if y[2*i+1] > op.y[-1]:
             partial_stage = (op.y[-1] - y[-3]) / (y[-1] - y[-3])
             y[-1] = op.y[-1]
