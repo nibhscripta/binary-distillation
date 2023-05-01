@@ -71,3 +71,38 @@ def step_off_top(op, eq, E:float = 1):
             warnings.warn(f"Cannot get around pinch point.")
 
     return BinaryStageAnalysis(x, y, N)
+
+
+
+def step_off_bottom(op, eq, E:float = 1, B_E=1):
+    if E > 1 or E <= 0:
+        raise ValueError("Efficiency must be between 0 and 1 or 1.")
+
+    if B_E > 1 or B_E <= 0:
+        raise ValueError("Reboiler efficiency must be between 0 and 1 or 1.")
+
+    x = [op.x[0]]
+    y = [op.x[0]]
+
+    for i in range(1000):
+        x.append(x[2*i])
+        y_eq = numpy.interp(x[2*i], eq.x, eq.y)
+        if i == 0:
+            y.append(y[2*i-1] - (y[2*i-1] - y_eq) * B_E)
+        else:
+            y.append(y[2*i-1] - (y[2*i-1] - y_eq) * E)
+        y.append(y[2*i+1])
+        x.append(numpy.interp(y[2*i+1], op.y, op.x))
+        if y[2*i+1] > op.y[-1]:
+            partial_stage = (op.y[-1] - y[-3]) / (y[-1] - y[-3])
+            y[-1] = op.y[-1]
+            y[-2] = op.y[-1]
+            x[-1] = op.x[-1]
+            N = i + partial_stage
+            break
+
+        if i >= 999:
+            N = i+1
+            warnings.warn(f"Cannot get around pinch point.")
+        
+    return BinaryStageAnalysis(x, y, N)
