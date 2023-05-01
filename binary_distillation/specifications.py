@@ -1,6 +1,9 @@
-import scipy, dataclasses, numpy, matplotlib, warnings, typing
+import scipy
+import dataclasses
+import numpy
+import typing
 
-from polynomial_fit import polynomial_fit
+from binary_distillation.polynomial_fit import polynomial_fit
 
 
 

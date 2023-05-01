@@ -1,8 +1,9 @@
-import numpy, scipy, sklearn, dataclasses, typing
-
-'''
-Functions for fitting data to polynomials
-'''
+import numpy
+import numpy.polynomial
+import scipy.optimize
+import sklearn.metrics
+import dataclasses
+import typing
 
 
 

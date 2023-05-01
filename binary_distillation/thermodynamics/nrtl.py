@@ -1,20 +1,12 @@
-import dataclasses, typing, numpy, scipy
+import dataclasses
+import numpy
+import scipy.optimize
 
-from objects import BinaryVaporLiquidEquilibriumLine
+from binary_distillation.specifications import BinaryVaporLiquidEquilibriumLine
+
+from binary_distillation.thermodynamics.vle import AntoineParameters
 
 
-@dataclasses.dataclass 
-class AntoineParameters():
-    A: float
-    B: float
-    C: float
-    log_type: typing.Literal["ln", "log"] = "ln"
-
-    def P(self, T):
-        if self.log_type == "ln":
-            return numpy.exp(self.A - self.B / (T + self.C))
-        elif self.log_type == "log":
-            return 10**(self.A - self.B / (T + self.C))
 
 def _gamma(x, T, b_12, b_21, alpha):
     R = 8.314
@@ -31,6 +23,8 @@ def _gamma(x, T, b_12, b_21, alpha):
     ln_gamma = numpy.array([ln_gamma_1(x, T), ln_gamma_2(x, T)])
 
     return numpy.exp(ln_gamma)
+
+
 
 @dataclasses.dataclass 
 class BinaryNRTLParameters():

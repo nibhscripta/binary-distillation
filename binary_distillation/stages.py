@@ -1,11 +1,7 @@
-import scipy, dataclasses, numpy, matplotlib, warnings
-
-
-
-def _azeotrope_example_function(x):
-    c = [14.64671599, -39.42525966, 39.32333535, -17.6497924, 2.98923655, 1.11520416]
-    poly = lambda x, A, B, C, D, E, F: A * x**6 + B * x**5 + C * x**4 + D * x**3 + E * x**2 + F * x
-    return poly(x, *c)
+import dataclasses
+import numpy
+import matplotlib.pyplot
+import warnings
 
 
 
