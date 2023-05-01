@@ -8,6 +8,36 @@ from binary_distillation.polynomial_fit import polynomial_fit
 
 
 def _one_d_intersections(x1, y1, x2, y2, iterations=10, tol=1e-8):
+    r'''
+    Returns the the intersections between two curves defined by numpy arrays.
+
+    Parameters
+    ----------
+
+    x1: ndarray
+        x values of the first curve.
+
+    y1: ndarray
+        y values of the first curve.
+
+    x2: ndarray
+        x values of the second curve.
+
+    y2: ndarray
+        y values of the second curve.
+
+    iterations: int, optional
+        The number of guesses that will be iterated through to find an intersection between the curve. Guesses range from the smallest value in x1 to the largest value in x1. Defaults to 10. 
+
+    tol: float, optional
+        Defaults to 1e-8. Intersection tolerance.
+
+    Returns
+    ----------
+
+    tolerant_sols: tuple
+        List of intersection coordinate pairs.
+    '''
     f = lambda x: numpy.interp(x, x1, y1) - numpy.interp(x, x2, y2)
     sols = []
     for i in range(iterations):
@@ -31,6 +61,27 @@ def _one_d_intersections(x1, y1, x2, y2, iterations=10, tol=1e-8):
 
 
 def _is_azeotrope(x, y, tol=1e-8):
+    r'''
+    Determines whether a set of vapor/liquid VLE data is azeotropic.
+
+    Parameters
+    ----------
+
+    x: ndarray
+        Liquid composition values.
+
+    y: ndarray
+        Vapor composition values.
+
+    Returns
+    ----------
+
+    False:
+        If the vapor/liquid VLE data is not azeotrpic.
+
+    val: float
+         If the vapor/liquid VLE data is azeotrpic, _is_azeotrope returns the azeotrope composition.
+    '''
     identity_x = numpy.array([0, 1])
     identity_y = identity_x
     intersections = _one_d_intersections(x, y, identity_x, identity_y)
@@ -45,6 +96,30 @@ def _is_azeotrope(x, y, tol=1e-8):
 
 
 def _valid_binary_specification_with_azeotrope(x_F, x_D, x_W, x_azeo):
+    r'''
+    Determines if an azeotropic distillation specification is valid.
+
+    Parameters
+    ----------
+
+    x_F: float
+        Feed composition
+
+    x_D: float
+        Distillate composition
+
+    x_W: float
+        Worm/bottom composition
+
+    x_azeo: float
+        Azeotrope composition
+
+    Returns
+    ----------
+
+    Bool:
+        Validity of specification
+    '''
     if (x_F < x_azeo) and (x_D < x_azeo) and (x_W < x_azeo):
         return True
     elif (x_F > x_azeo) and (x_D > x_azeo) and (x_W > x_azeo):
@@ -55,16 +130,29 @@ def _valid_binary_specification_with_azeotrope(x_F, x_D, x_W, x_azeo):
 
 
 def _evaluate_minimum_reflux_ratio(eq, x_F, x_D, q):
-    '''
-    Finds the minimum reflux ratio of a binary distillation column by finding the point at which the feed and enriching line intersect the equilibrium curve.
+    r'''
+    Determines the minimum reflux ration of a binary distillation system.
 
-    equilibrium_line: Set of x/y data that describes relationship between the composition of a binary mixture in the liquid and vapor phases.
+    Parameters
+    ----------
 
-    x_F: Feed composition
+    eq: BinaryVaporLiquidEquilibriumLine
+        Represenation of the equilibrium line
+    
+    x_F: float
+        Feed composition
 
-    x_D: Distillate composition
+    x_D: float
+        Distillate composition
+    
+    q: float
+        Feed quality
 
-    q: Number which describes the slope of the feed line.
+    Returns
+    ----------
+
+    R_min: float
+        Minimum relfux ratio
     '''
     if q == 1:
         xp = x_F
@@ -88,6 +176,21 @@ def _evaluate_minimum_reflux_ratio(eq, x_F, x_D, q):
 
 @dataclasses.dataclass
 class OperatingLine():
+    r'''
+    Base class for the oprating line of a binary distillation system.
+
+    Parameters
+    ----------
+
+    x: ndarray
+        Liquid compositions along the operating line.
+
+    y: ndarray
+        Vapor compositions along the operating line.
+
+    f: function
+        A function which represents the operating line
+    '''
     x: numpy.ndarray = dataclasses.field(repr=False)
     y: numpy.ndarray = dataclasses.field(repr=False)
     f: typing.Optional[typing.Callable] = dataclasses.field(repr=False)
@@ -95,18 +198,41 @@ class OperatingLine():
 
 
 def _operating_lines_specified_reflux(x_F, x_D, x_W, q, R):
-    '''
-    Creates a enriching and stripping lines for a specified reflux ratio.
+    r'''
+    Creates an enriching line and a stripping line for a binary distillation system given that the reflux ratio is specified.
 
-    x_F: Feed composition
+    Parameters
+    ----------
 
-    x_D: Distillate composition
+    x_F: float
+        Feed composition
 
-    x_W: Worm/bottom composition
+    x_D: float
+        Distillate composition
 
-    q: Number which describes the slope of the feed line.
+    x_W: float
+        Worm/bottom composition
 
-    R: reflux ratio
+    q: float
+        Feed quality
+    
+    R: float
+        Reflux ratio
+
+    Returns
+    ----------
+
+    s: OperatingLine
+        Representation of the stripping line
+    
+    e: OperatingLine
+        Representation of the enriching line
+
+    xpp: float
+        Liquid composition at the intersection between the feed, stripping, and enriching lines.
+    
+    ypp: float
+        Vapor composition at the intersection between the feed, stripping, and enriching lines.
     '''
     # enriching line
     f_e = lambda x: R / (R + 1) * x + x_D / (R + 1)
@@ -136,18 +262,41 @@ def _operating_lines_specified_reflux(x_F, x_D, x_W, q, R):
 
 
 def _operating_lines_specified_boilup(x_F, x_D, x_W, q, B):
-    '''
-    Creates a enriching and stripping lines for a specified boilup ratio.
+    r'''
+    Creates an enriching line and a stripping line for a binary distillation system given that the boilup ratio is specified.
 
-    x_F: Feed composition
+    Parameters
+    ----------
 
-    x_D: Distillate composition
+    x_F: float
+        Feed composition
 
-    x_W: Worm/bottom composition
+    x_D: float
+        Distillate composition
 
-    q: Number which describes the slope of the feed line.
+    x_W: float
+        Worm/bottom composition
 
-    B: Boilup ratio
+    q: float
+        Feed quality
+    
+    B: float
+        Boilup ratio
+
+    Returns
+    ----------
+
+    s: OperatingLine
+        Representation of the stripping line
+    
+    e: OperatingLine
+        Representation of the enriching line
+
+    xpp: float
+        Liquid composition at the intersection between the feed, stripping, and enriching lines.
+    
+    ypp: float
+        Vapor composition at the intersection between the feed, stripping, and enriching lines.
     '''
     # stripping line
     f_s = lambda x: (1 + 1 / B) * x - x_W / B
@@ -191,6 +340,35 @@ def _feed_quality(q):
 
 @dataclasses.dataclass
 class BinaryVaporLiquidEquilibriumLine():
+    r'''
+    Base class which represents the equilibrium line of a binary mixture.
+
+    Parameters
+    ----------
+
+    *args : arguments
+        An equilibrium line can be defined with 1, 2, or 3 arguments.
+        The following gives the number of arguments and the corresponding argument order.:
+
+            * 1: (f)
+                f: function
+                    A function which represents the equilibrium line
+            * 2: (x, y)
+                x: ndarray
+                    Liquid compositions along the equilibrium line.
+
+                y: ndarray
+                    Vapor compositions along the equilibrium line.
+            * 3: (x, y, f)
+                x: ndarray
+                    Liquid compositions along the equilibrium line.
+
+                y: ndarray
+                    Vapor compositions along the equilibrium line.
+
+                f: function
+                    A function which represents the equilibrium line
+    '''
     x: numpy.ndarray = dataclasses.field(init=False, repr=False)
     y: numpy.ndarray = dataclasses.field(init=False, repr=False)
     f: typing.Optional[typing.Callable] = None
@@ -218,6 +396,21 @@ class BinaryVaporLiquidEquilibriumLine():
             raise TypeError("Vapor composition must be between 0 and 1.")
 
     def fit_curve(self, function=None):
+        r'''
+        Fits an equation to the equilibrium data defined by the BinaryVaporLiquidEquilibriumLine class.
+
+        Parameters
+        ----------
+
+        function: function, optional
+            The function to which the data will be fit, see scipy.optimize.curvefit. Function must follow the form f(x, A, B,...) where x is the independent variable of the function and A, B,... are the parameters of f.
+        
+        Returns
+        ----------
+
+        None
+
+        '''
         if function is not None:
             covs, _ = scipy.optimize.curve_fit(function, self.x, self.y)
 
@@ -232,6 +425,63 @@ class BinaryVaporLiquidEquilibriumLine():
 
 @dataclasses.dataclass
 class BinaryDistillationOperatingLine():
+    r'''
+    Represention of the unified operating line of a binary distillation system.
+
+    Parameters
+    ----------
+
+    x_F: float
+        Feed composition
+
+    x_D: float
+        Distillate composition
+
+    x_W: float
+        Worm/bottom composition
+
+    equilibrium: BinaryVaporLiquidEquilibriumLine
+        Representation of the equilibrium line of the binary distillation system.
+
+    q: float
+        Feed quality
+
+    R: float, optional
+        Reflux ratio
+    
+    B: float, optional
+        Boilup ratio
+    
+    azeo_x: float, optional
+        Azeotrope composition, if the equilibrium line represents an azeotropic binary mixture.
+
+    Attributes
+    ----------
+
+    R_min: float
+        Minimum reflux ratio of the binary distillation system.
+
+    feed_quailty, str
+        The qualitative quality of the feed.
+    
+    e: OperatingLine
+        Representation of the enriching line 
+
+    s: OperatingLine
+        Representation of the stripping line
+
+    x: ndarray
+        Liquid compositions along the unified operating line
+
+    y: ndarray
+        Vapor compositions along the unified operating line 
+
+    xpp: float
+        Liquid composition at the intersection between the feed, stripping, and enriching lines.
+    
+    ypp: float
+        Vapor composition at the intersection between the feed, stripping, and enriching lines.
+    '''
     x_F: float
     x_D: float
     x_W: float
