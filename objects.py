@@ -200,6 +200,10 @@ class BinaryVaporLiquidEquilibriumLine():
         elif len(args) == 2:
             self.x = args[0]
             self.y = args[1]
+        elif len(args) == 3:
+            self.x = args[0]
+            self.y = args[1]
+            self.f = args[2]
         
         if self.x.min() < 0:
             raise TypeError("Liquid composition must be between 0 and 1.")
