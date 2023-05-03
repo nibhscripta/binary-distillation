@@ -1,9 +1,27 @@
 import numpy
 import numpy.polynomial
 import scipy.optimize
-import sklearn.metrics
 import dataclasses
 import typing
+
+
+
+def r2_score(y_true, y_reg) -> float:
+    y_true = numpy.asarray(y_true)
+    y_reg = numpy.asarray(y_reg)
+
+    if y_true.ndim != 1 or y_reg.ndim != 1:
+        raise TypeError("Input arrays must both be 1-dimensional.")
+
+    if y_true.shape != y_reg.shape:
+        raise TypeError(f"Input arrays must be of the same shape. Input shapes are {y_true.shape} and {y_reg.shape}")
+
+    ss_res = numpy.sum((y_true - y_reg)**2)
+    ss_tot = numpy.sum((y_true - numpy.mean(y_true))**2)
+
+    r2 = 1 - ss_res / ss_tot
+
+    return r2
 
 
 
@@ -17,7 +35,7 @@ def _evaluate_polynomials(x_data, y_data, max_deg=11):
 
         covs, _ = scipy.optimize.curve_fit(f, x_data, y_data, numpy.zeros(deg))
 
-        r2[i] = sklearn.metrics.r2_score(y_data, f(x_data, *covs))
+        r2[i] = r2_score(y_data, f(x_data, *covs))
 
         p[str(deg)] = {
             'coeffs': (0, *covs),
