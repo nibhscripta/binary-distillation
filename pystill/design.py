@@ -205,3 +205,38 @@ class DistillationColumn():
 
         self.stages = XYLine(x, y)
         self.N = N
+
+# Legacy stage analysis
+
+def step_off_top(op_line, eq, E:float = 1):
+    from numpy import interp
+    op = OperatingLine([*op_line.s.x, *op_line.e.x], [*op_line.s.y, *op_line.e.y])
+
+    if E > 1 or E <= 0:
+        raise ValueError("Efficiency must be between 0 and 1 or 1.")
+    
+    # x values at each stage
+    x = [op.x[-1]]
+    # y values at each stage
+    y = [op.x[-1]]
+
+    for i in range(1000):
+        y.append(y[-1])
+        x_eq = interp(y[-1], eq.y, eq.x)
+        x.append(x[-1] - (x[-1] - x_eq) * E)
+        x.append(x[-1])
+        y.append(interp(x[-1], op.x, op.y))
+        if x[2*i+1] < op.x[0]:
+            partial_stage = (x[-3] - op.x[0]) / (x[-3]- x[-1])
+            x[-1] = op.x[0]
+            y[-1] = op.x[0]
+            x[-2] = op.x[0]
+            y[-2] = y[-3]
+            N = i + partial_stage 
+            break
+
+        if i >= 999:
+            N = i+1
+            warnings.warn(f"Cannot get around pinch point.")
+
+    return x, y, N
