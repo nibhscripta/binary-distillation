@@ -2,8 +2,23 @@ import scipy
 import dataclasses
 import numpy
 import typing
+import numpy.typing
 
 from binary_distillation.polynomial_fit import polynomial_fit
+
+
+
+@dataclasses.dataclass
+class BinaryVaporLiquidLine():
+    x: numpy.typing.ArrayLike = dataclasses.field(repr=False)
+    y: numpy.typing.ArrayLike = dataclasses.field(repr=False)
+
+    def __post_init__(self):
+        self.x = numpy.asarray(self.x)
+        self.y = numpy.asarray(self.y)
+
+        if (self.x.min() < 0) or (self.y.min() < 0) or (self.x.max() > 1) or (self.y.max() > 1):
+            raise TypeError("Vapor/Liquid composition must be between 0 and 1.")
 
 
 
@@ -175,7 +190,7 @@ def _evaluate_minimum_reflux_ratio(eq, x_F, x_D, q):
 
 
 @dataclasses.dataclass
-class OperatingLine():
+class OperatingLine(BinaryVaporLiquidLine):
     r'''
     Base class for the oprating line of a binary distillation system.
 
@@ -187,13 +202,8 @@ class OperatingLine():
 
     y: ndarray
         Vapor compositions along the operating line.
-
-    f: function
-        A function which represents the operating line
     '''
-    x: numpy.ndarray = dataclasses.field(repr=False)
-    y: numpy.ndarray = dataclasses.field(repr=False)
-    f: typing.Optional[typing.Callable] = dataclasses.field(repr=False)
+    pass
 
 
 
@@ -257,7 +267,7 @@ def _operating_lines_specified_reflux(x_F, x_D, x_W, q, R):
     x_s = numpy.array([x_W, xpp])
     y_s = f_s(x_s)
 
-    return OperatingLine(x_s, y_s, f_s), OperatingLine(x_e, y_e, f_e), xpp, ypp
+    return OperatingLine(x_s, y_s), OperatingLine(x_e, y_e)
 
 
 
@@ -321,7 +331,7 @@ def _operating_lines_specified_boilup(x_F, x_D, x_W, q, B):
     x_e = numpy.array([xpp, x_D])
     y_e = f_e(x_e)
 
-    return OperatingLine(x_s, y_s, f_s), OperatingLine(x_e, y_e, f_e), xpp, ypp
+    return OperatingLine(x_s, y_s), OperatingLine(x_e, y_e)
 
 
 
@@ -339,7 +349,7 @@ def _feed_quality(q):
 
 
 @dataclasses.dataclass
-class BinaryVaporLiquidEquilibriumLine():
+class BinaryVaporLiquidEquilibriumLine(BinaryVaporLiquidLine):
     r'''
     Base class which represents the equilibrium line of a binary mixture.
 
@@ -359,41 +369,24 @@ class BinaryVaporLiquidEquilibriumLine():
 
                 y: ndarray
                     Vapor compositions along the equilibrium line.
-            * 3: (x, y, f)
-                x: ndarray
-                    Liquid compositions along the equilibrium line.
-
-                y: ndarray
-                    Vapor compositions along the equilibrium line.
-
-                f: function
-                    A function which represents the equilibrium line
     '''
-    x: numpy.ndarray = dataclasses.field(init=False, repr=False)
-    y: numpy.ndarray = dataclasses.field(init=False, repr=False)
-    f: typing.Optional[typing.Callable] = None
+    f = typing.Callable = None
 
     def __init__(self, *args):
         if len(args) == 1:
-            self.f = args[0]
+            f = args[0]
             self.x = numpy.linspace(0, 1, 1000)
-            self.y = self.f(self.x)
+            self.y = f(self.x)
         elif len(args) == 2:
             self.x = args[0]
             self.y = args[1]
-        elif len(args) == 3:
-            self.x = args[0]
-            self.y = args[1]
-            self.f = args[2]
+
+        self.x = numpy.asarray(self.x)
+        self.y = numpy.asarray(self.y)
+
+        if (self.x.min() < 0) or (self.y.min() < 0) or (self.x.max() > 1) or (self.y.max() > 1):
+            raise TypeError("Vapor/Liquid composition must be between 0 and 1.")
         
-        if self.x.min() < 0:
-            raise TypeError("Liquid composition must be between 0 and 1.")
-        if self.x.max() > 1:
-            raise TypeError("Liquid composition must be between 0 and 1.")
-        if self.y.min() < 0:
-            raise TypeError("Vapor composition must be between 0 and 1.")
-        if self.y.max() > 1:
-            raise TypeError("Vapor composition must be between 0 and 1.")
 
     def fit_curve(self, function=None):
         r'''
@@ -414,12 +407,12 @@ class BinaryVaporLiquidEquilibriumLine():
         if function is not None:
             covs, _ = scipy.optimize.curve_fit(function, self.x, self.y)
 
-            self.f = lambda x: function(x, *covs)
+            f = lambda x: function(x, *covs)
         else:
-            self.f = polynomial_fit(self.x, self.y)
+            f = polynomial_fit(self.x, self.y)
 
         self.x = numpy.linspace(0, 1, 1000)
-        self.y = self.f(self.x)
+        self.y = f(self.x)
 
 
 
@@ -485,19 +478,15 @@ class BinaryDistillationOperatingLine():
     x_F: float
     x_D: float
     x_W: float
-    equilibrium: BinaryVaporLiquidEquilibriumLine = dataclasses.field(repr=False)
     q: float
+    equilibrium: BinaryVaporLiquidEquilibriumLine = dataclasses.field(repr=False)
     R: float = None
     B: float = None
-    azeo_x: float = None
+    azeo_x: float = dataclasses.field(init=False)
     R_min: float = dataclasses.field(init=False)
     feed_quailty: str = dataclasses.field(init=False) 
     e: OperatingLine = dataclasses.field(init=False, repr=False)
     s: OperatingLine = dataclasses.field(init=False, repr=False)
-    x: numpy.ndarray = dataclasses.field(init=False, repr=False)
-    y: numpy.ndarray = dataclasses.field(init=False, repr=False) 
-    xpp: float = dataclasses.field(init=False, repr=False)
-    ypp: float = dataclasses.field(init=False, repr=False) 
 
     def __post_init__(self):
         azeo_x = _is_azeotrope(self.equilibrium.x, self.equilibrium.y)
@@ -515,21 +504,16 @@ class BinaryDistillationOperatingLine():
 
         if self.R is None and self.B is None:
             self.R = 1.3 * self.R_min
-            self.s, self.e, self.xpp, self.ypp = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
+            self.s, self.e = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
         elif self.R is not None:
             if self.R <= self.R_min:
                 raise TypeError("Infeasible system. R is below R_min.")
-            self.s, self.e, self.xpp, self.ypp = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
+            self.s, self.e = _operating_lines_specified_reflux(self.x_F, self.x_D, self.x_W, self.q, self.R)
         elif self.B is not None:
-            self.s, self.e, self.xpp, self.ypp = _operating_lines_specified_boilup(self.x_F, self.x_D, self.x_W, self.q, self.B)
+            self.s, self.e = _operating_lines_specified_boilup(self.x_F, self.x_D, self.x_W, self.q, self.B)
 
-        self.x = numpy.array([*self.s.x, *self.e.x])
-        self.y = numpy.array([*self.s.y, *self.e.y])
 
-        if self.ypp > numpy.interp(self.xpp, self.equilibrium.x, self.equilibrium.y):
+        if self.e.y[0] > numpy.interp(self.e.x[0], self.equilibrium.x, self.equilibrium.y):
             raise TypeError("Infeasible system. Operating line exceeds equilibrium line.")
         
         self.feed_quailty = _feed_quality(self.q)
-
-    def __str__(self):
-        return f"x_F: {self.x_F}, x_D: {self.x_D}, x_W: {self.x_W}, q: {self.q}, R: {self.R}, B: {self.B}, R_min: {self.R_min}"
