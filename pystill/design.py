@@ -4,16 +4,6 @@ from dataclasses import dataclass, field
 
 from pystill.equilibrium import EquilibriumLine, XYLine
 
-def _valid_binary_specification_with_azeotrope(x_F, x_D, x_W, x_azeo):
-
-    if (x_F < x_azeo) and (x_D < x_azeo) and (x_W < x_azeo):
-        return True
-    elif (x_F > x_azeo) and (x_D > x_azeo) and (x_W > x_azeo):
-        return True
-    else: 
-        return False
-
-
 
 def minimum_reflux_ratio(eq, x_F, x_D, q):
     from numpy import interp
@@ -148,6 +138,20 @@ class DistillationColumn():
     stages: XYLine = field(default=None, repr=False)         
 
     def __post_init__(self):
+        # validate specification
+        if (self.x_D < self.x_F) or (self.x_F < self.x_W):
+            raise TypeError("Feed composition must be above the worm composition and below the distillate composition.")
+
+        # validate composition spec where an azeotrope exists
+        if self.equilibrium.azeo_x is not None:
+            x_azeo = self.equilibrium.azeo_x
+            if (self.x_F < x_azeo) and (self.x_D < x_azeo) and (self.x_W < x_azeo):
+                pass
+            elif (self.x_F > x_azeo) and (self.x_D > x_azeo) and (self.x_W > x_azeo):
+                pass
+            else: 
+                raise TypeError("Column compositions must all fall on one side of the azeotrope composition.")
+
         self.R_min = minimum_reflux_ratio(self.equilibrium, self.x_F, self.x_D, self.q)
 
         if self.R is None and self.B is None:
@@ -172,7 +176,17 @@ class DistillationColumn():
 
             self.e = EnrichingLine(self.x_F, self.q, self.x_D, self.R)
 
-        self.f = XYLine([self.x_F, self.e.x[0]], [self.x_F, self.e.y[0]])
+        xpp = self.e.x[0]
+        ypp = self.e.y[0]
+
+        from numpy import interp
+
+        yp = interp(xpp, self.equilibrium.x, self.equilibrium.y)
+
+        if ypp >= yp:
+            raise TypeError(f"Operating line cannot exceed equilibrium. y''={ypp} which is greater than y'={yp}.")
+
+        self.f = XYLine([self.x_F, xpp], [self.x_F, ypp])
 
     def plot(self):
         from matplotlib.pyplot import plot
