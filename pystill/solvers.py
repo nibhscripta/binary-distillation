@@ -1,7 +1,10 @@
 def poly_fit(x_data, y_data, deg=10):
-    from numpy import zeros
+    from numpy import zeros, asarray
     from numpy.polynomial import Polynomial
     from scipy.optimize import curve_fit
+
+    x_data = asarray(x_data)
+    y_data = asarray(y_data)
 
     f = lambda x, *coeffs: Polynomial([0, *coeffs])(x)
 

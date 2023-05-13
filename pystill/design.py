@@ -141,6 +141,9 @@ class DistillationColumn():
         # validate specification
         if (self.x_D < self.x_F) or (self.x_F < self.x_W):
             raise TypeError("Feed composition must be above the worm composition and below the distillate composition.")
+        
+        if (self.x_F < 0) or (self.x_F > 1) or (self.x_D < 0) or (self.x_D > 1) or (self.x_W < 0) or (self.x_W > 1):
+            raise TypeError("Compositions must be between 0 and 1.")
 
         # validate composition spec where an azeotrope exists
         if self.equilibrium.azeo_x is not None:
