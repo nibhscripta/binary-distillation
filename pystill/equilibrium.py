@@ -107,44 +107,27 @@ class AntoineEquation():
             return exp(self.A - self.B / (T + self.C))
         elif self.log_type == "log":
             return 10**(self.A - self.B / (T + self.C))
-        
+
+
+_ideal_gamma = lambda x, T: 1
 
 @dataclass 
-class NRTL():
+class RaultsLawEquilibrium():
     P_1: typing.Callable
     P_2: typing.Callable
-    b_12: float
-    b_21: float
-    alpha: float
-
-    def gamma(self, x, T):
-        from numpy import exp, array
-
-        tau_12 = lambda T: self.b_12 / R / T
-        tau_21 = lambda T: self.b_21 / R / T
-        G_12 = lambda T: exp(-self.alpha * tau_12(T))
-        G_21 = lambda T: exp(-self.alpha * tau_21(T))
-
-        ln_gamma_1 = lambda x, T: (1 - x)**2 * (tau_21(T) * (G_21(T) / (x + (1 - x) * G_21(T)))**2 + G_12(T) * tau_12(T) / ((1 - x) + x * G_12(T))**2)
-
-        ln_gamma_2 = lambda x, T: x**2 * (tau_12(T) * (G_12(T) / ((1 - x) + x * G_12(T)))**2 + G_21(T) * tau_21(T) / (x + (1 - x) * G_21(T))**2)
-
-        ln_gamma = array([ln_gamma_1(x, T), ln_gamma_2(x, T)])
-
-        return exp(ln_gamma)
+    gamma_1: typing.Callable = _ideal_gamma
+    gamma_2: typing.Callable = _ideal_gamma
 
     def equilibrium(self, x, P):
         from scipy.optimize import fsolve
 
         def P_T(T):
-            gamma = self.gamma(x, T)
-
-            return x * gamma[0] * self.P_1(T) + (1 - x) * gamma[1] * self.P_2(T)
+            return x * self.gamma_1(x, T) * self.P_1(T) + (1 - x) * self.gamma_2(x, T) * self.P_2(T)
 
         T = fsolve(lambda T: P - P_T(T), 298)[0]
-        y = x * self.gamma(x, T)[0] * self.P_1(T) / P 
+        y = x * self.gamma_1(x, T) * self.P_1(T) / P 
         return y
-
+    
     def equilibrium_line(self, P):
         from numpy import linspace, zeros
 
@@ -157,3 +140,30 @@ class NRTL():
         line = EquilibriumLine(x, y)
 
         return line
+
+
+class NRTL(RaultsLawEquilibrium):
+    b_12: float
+    b_21: float
+    alpha: float
+
+    def __init__(self, P_1, P_2, b_12, b_21, alpha):
+        self.P_1 = P_1
+        self.P_2 = P_2
+        self.b_12 = b_12
+        self.b_21 = b_21
+        self.alpha = alpha
+
+        from numpy import exp
+
+        tau_12 = lambda T: self.b_12 / R / T
+        tau_21 = lambda T: self.b_21 / R / T
+        G_12 = lambda T: exp(-self.alpha * tau_12(T))
+        G_21 = lambda T: exp(-self.alpha * tau_21(T))
+
+        ln_gamma_1 = lambda x, T: (1 - x)**2 * (tau_21(T) * (G_21(T) / (x + (1 - x) * G_21(T)))**2 + G_12(T) * tau_12(T) / ((1 - x) + x * G_12(T))**2)
+
+        ln_gamma_2 = lambda x, T: x**2 * (tau_12(T) * (G_12(T) / ((1 - x) + x * G_12(T)))**2 + G_21(T) * tau_21(T) / (x + (1 - x) * G_21(T))**2)
+
+        self.gamma_1 = lambda x, T: exp(ln_gamma_1(x, T))
+        self.gamma_2 = lambda x, T: exp(ln_gamma_2(x, T))
