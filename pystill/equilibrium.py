@@ -141,7 +141,7 @@ class EquilibriumLine(XYLine):
         if azeo_x:
             self.azeo_x = azeo_x
 
-    def from_function(f):
+    def from_function(f: typing.Callable[[float], float]):
         '''
         Parameters
         -----------
@@ -168,7 +168,7 @@ class EquilibriumLine(XYLine):
 
         return EquilibriumLine(x, y)
 
-    def fit_curve(self, function=None, deg=10):
+    def fit_curve(self, function: typing.Callable[[float], float]=None, deg=10):
         '''
         Fits a function to the vapor/liquid equilibrium data
         defined by an instance of `EquilibriumLine`. Specifiying
@@ -258,7 +258,7 @@ class AntoineEquation():
     C: float
     log_type: typing.Literal["ln", "log"] = "ln"
 
-    def P(self, T):
+    def P(self, T: float) -> float:
         '''
         Return the vapor pressure of a molecule at 
         a specific temperature. Temperature units
@@ -323,7 +323,7 @@ class RaultsLawEquilibrium():
     gamma_1: typing.Callable = _ideal_gamma
     gamma_2: typing.Callable = _ideal_gamma
 
-    def _equilibrium(self, x, P):
+    def _equilibrium(self, x: float, P: float) -> float:
         from scipy.optimize import fsolve
 
         # pressure from Rauolt's Law, P(T)
@@ -336,7 +336,7 @@ class RaultsLawEquilibrium():
         y = x * self.gamma_1(x, T) * self.P_1(T) / P 
         return y
     
-    def equilibrium_line(self, P):
+    def equilibrium_line(self, P: float):
         '''
         Creates an `EquilibriumLine` object from the vapor pressure
         realtionship defined by an instance of the `RaultsLawEquilibrium`

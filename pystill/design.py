@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pystill.equilibrium import EquilibriumLine, XYLine
 
 
-def minimum_reflux_ratio(eq, x_F, x_D, q):
+def minimum_reflux_ratio(eq: float, x_F: float, x_D: float, q: float) -> float:
     from numpy import interp
     from scipy.optimize import fsolve
 
@@ -99,7 +99,7 @@ class StrippingLine(OperatingLine):
         self.y = f_s(self.x)
 
 
-def step_off_bottom(op, eq, E:float = 1, B_E=1, iter=1000):
+def step_off_bottom(op: XYLine, eq: EquilibriumLine, E:float = 1, B_E: float=1, iter=1000) -> tuple[list, list, float]:
     from numpy import interp
 
     # Efficiencies must be between 0 and 1
@@ -165,7 +165,8 @@ class DistillationColumn():
     column. Used to determine the number of theoretical stages 
     required to carry out a specific distillation. Builds on the
     `equilibrium.EquilibriumLine` class and requires an instance
-    of it.
+    of it. Only supports a single feed with one exit at the top and
+    bottom stages.
 
     Parameters
     -----------
@@ -336,7 +337,23 @@ class DistillationColumn():
             # Only plot stages if calculated
             plot(self.stages.x, self.stages.y, "k", label="Stages")
 
-    def design_stages(self, E=1, B_E=1):
+    def design_stages(self, E: float=1, B_E: float=1):
+        '''
+        Perform a McCabe Thiele analysis on an instance of distillation
+        column object. Generates values for the attributes 
+        `DistillationColumn.stages` and `DistillationColumn.N`. 
+
+        Parameters
+        -----------
+
+        E: float, Optional 
+            Murphree tray efficiency. Must be a value between 0 and 1.
+            Defaults to 1.
+
+        B_E: float, Optional
+            Reboiler efficiency. Must be a value between 0 and 1.
+            Defaults to 1.
+        '''
         # combine enriching and stripping line
         op = XYLine([*self.s.x, *self.e.x], [*self.s.y, *self.e.y])
         # step stages from bottom
