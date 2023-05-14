@@ -32,7 +32,7 @@ op.design_stages()
 # PLot the McCabe Thiele analysis
 op.plot()
 legend()
-plot()
+show()
 ```
 
 Result:
