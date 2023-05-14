@@ -141,6 +141,14 @@ class EquilibriumLine(XYLine):
         if azeo_x:
             self.azeo_x = azeo_x
 
+    def y_x(self, x: float) -> float:
+        from numpy import interp
+        return interp(x, self.x, self.y)
+    
+    def x_y(self, y: float) -> float:
+        from numpy import interp
+        return interp(y, self.x, self.y)
+
     def from_function(f: typing.Callable[[float], float]):
         '''
         Parameters

@@ -6,7 +6,6 @@ from pystill.equilibrium import EquilibriumLine, XYLine
 
 
 def minimum_reflux_ratio(eq: float, x_F: float, x_D: float, q: float) -> float:
-    from numpy import interp
     from scipy.optimize import fsolve
 
     # special case where q=1, x'=x_F
@@ -19,13 +18,13 @@ def minimum_reflux_ratio(eq: float, x_F: float, x_D: float, q: float) -> float:
         f_F = lambda x: q / (q - 1) * x - x_F / (q - 1)
 
         # intersection between feed and equilibrium lines; evaluates to 0 at x'
-        f_p = lambda x: interp(x, eq.x, eq.y) - f_F(x)
+        f_p = lambda x: eq.y_x(x) - f_F(x)
 
         # x'
         xp = fsolve(f_p, x_F)[0]
     
     # y'
-    yp = interp(xp, eq.x, eq.y)
+    yp = eq.y_x(xp)
 
     # minimum reflux ration
     return (x_D - yp) / (yp - xp)
@@ -116,7 +115,7 @@ def step_off_bottom(op: XYLine, eq: EquilibriumLine, E:float = 1, B_E: float=1, 
     for i in range(iter):
         # first point at each stage lies on the equilibrium line
         x.append(x[-1])
-        y_eq = interp(x[-1], eq.x, eq.y)
+        y_eq = eq.y_x(x[-1])
 
         # if stage is reboiler use reboiler efficiency calculation
         if i == 0:
@@ -308,10 +307,8 @@ class DistillationColumn():
         xpp = self.e.x[0]
         ypp = self.e.y[0]
 
-        from numpy import interp
-
         # calculate y' pinch point
-        yp = interp(xpp, self.equilibrium.x, self.equilibrium.y)
+        yp = self.equilibrium.y_x(xpp)
 
         # distillation is infeasible if y'' is above y'
         if ypp >= yp:
