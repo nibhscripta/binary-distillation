@@ -35,4 +35,6 @@ legend()
 plot()
 ```
 
+Result:
+
 ![McCabe Thiele Analysis](https://github.com/nibhscripta/binary-distillation/blob/main/McCabe_Thiele.png)
